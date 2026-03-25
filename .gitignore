@@ -21,6 +21,7 @@ dist-ssr
 # IDEs and editors
 .vscode/
 .idea/
+.claude/
 .DS_Store
 *.suo
 *.njsproj
