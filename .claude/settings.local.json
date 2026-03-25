@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npm install:*)",
+      "Bash(rm:*)",
+      "Bash(npm:*)",
+      "Bash(export:*)",
+      "Bash(taskkill:*)",
+      "Bash(netstat:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_close",
+      "Bash(npx kill-port:*)",
+      "Bash(npx run:*)"
+    ]
+  }
+}
