@@ -20,10 +20,17 @@ export interface ElectronAPI {
    // 平台信息
    platform: 'win32' | 'darwin' | 'linux'
    version: string
-}
+ }
+
+export interface CookieAPI {
+   getCookie: () => Promise<string>
+   setCookie: (cookie: string) => void
+   clearCookie: () => void
+ }
 
 declare global {
-  interface Window {
-    electronAPI: ElectronAPI
-  }
-}
+   interface Window {
+     electronAPI: ElectronAPI
+     cookieAPI: CookieAPI
+   }
+ }

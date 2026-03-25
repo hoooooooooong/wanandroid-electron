@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell, nativeTheme, nativeImage } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, nativeTheme, nativeImage, session, net } from 'electron'
 import { join } from 'path'
 
 let mainWindow: BrowserWindow | null = null
@@ -6,11 +6,20 @@ let webviewWindows: Map<number, BrowserWindow> = new Map()
 
 const isDev = !app.isPackaged
 
+// 配置 Cookie 持久化
+app.commandLine.appendSwitch('disable-features', 'OutOfBlinkCors')
+
+
 function createWindow() {
   // 创建应用图标
-  const iconPath = isDev
-    ? join(__dirname, '../src/assets/hero.png')
-    : join(__dirname, '../dist/assets/hero.png')
+  let iconPath: string
+  if (isDev) {
+    // 开发环境：使用 build 目录下的图标
+    iconPath = join(__dirname, '../build/icon.png')
+  } else {
+    // 打包环境：使用打包后的图标
+    iconPath = join(process.resourcesPath, 'icon.png')
+  }
   const icon = nativeImage.createFromPath(iconPath)
 
   mainWindow = new BrowserWindow({
@@ -27,7 +36,9 @@ function createWindow() {
       contextIsolation: true,
       preload: join(__dirname, 'preload.js'),
       webSecurity: true,
-      webviewTag: true // 启用 webview 标签
+      webviewTag: true,
+      allowRunningInsecureContent: false,
+      session: session.defaultSession
     },
     titleBarStyle: 'hidden',
     trafficLightPosition: { x: 20, y: 20 }
@@ -144,4 +155,98 @@ function createWebViewWindow(url: string, title?: string) {
 // 处理打开 webview 的 IPC 消息
 ipcMain.on('open-webview', (_, url: string, title?: string) => {
   createWebViewWindow(url, title)
+})
+
+// Cookie 管理
+ipcMain.handle('get-cookie', async () => {
+  const cookies = await session.defaultSession.cookies.get({})
+  const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+  return cookieString
+})
+
+ipcMain.on('set-cookie', async (_, cookieString: string) => {
+  // 解析 Cookie 字符串并保存到 session
+  const cookies = cookieString.split(';')
+  for (const cookie of cookies) {
+    const [name, ...valueParts] = cookie.trim().split('=')
+    const value = valueParts.join('=')
+    if (name && value) {
+      await session.defaultSession.cookies.set({
+        url: 'https://www.wanandroid.com',
+        name: name.trim(),
+        value: value,
+        httpOnly: false,
+        secure: false
+      })
+    }
+  }
+})
+
+ipcMain.on('clear-cookie', async () => {
+  await session.defaultSession.clearStorageData({ storages: ['cookies'] })
+})
+
+// HTTP 请求代理（使用 Electron net API 自动处理 Cookie）
+ipcMain.handle('http-request', async (_, options: { method: string; url: string; headers?: Record<string, string>; data?: string }) => {
+  return new Promise(async (resolve, reject) => {
+    // 使用 mainWindow 的 session 确保共享 Cookie
+    const ses = mainWindow?.webContents?.session || session.defaultSession
+    
+    // 从 session 获取所有 Cookie 并构建 Cookie 头
+    const cookies = await ses.cookies.get({})
+    const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ')
+    
+    const request = net.request({
+      method: options.method,
+      url: options.url,
+      session: ses
+    })
+
+    // 设置请求头
+    if (options.headers) {
+      for (const [key, value] of Object.entries(options.headers)) {
+        request.setHeader(key, value)
+      }
+    }
+    
+    // 手动添加 Cookie 头
+    if (cookieString) {
+      request.setHeader('Cookie', cookieString)
+    }
+
+    let responseData = ''
+    const responseHeaders: Record<string, string | string[]> = {}
+
+    request.on('response', (response) => {
+      // 保存响应头
+      const headers = response.headers
+      for (const key of Object.keys(headers)) {
+        responseHeaders[key] = headers[key] as string | string[]
+      }
+
+      response.on('data', (chunk) => {
+        responseData += chunk.toString()
+      })
+
+      response.on('end', () => {
+        resolve({
+          status: response.statusCode,
+          statusText: response.statusMessage,
+          headers: responseHeaders,
+          data: responseData
+        })
+      })
+    })
+
+    request.on('error', (error) => {
+      reject(error)
+    })
+
+    // 发送请求体
+    if (options.data) {
+      request.write(options.data)
+    }
+
+    request.end()
+  })
 })

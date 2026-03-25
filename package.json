@@ -7,7 +7,50 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:win": "cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ vite build && cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ electron-builder --win",
+    "build:win:dir": "cross-env ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ vite build && electron-builder --dir --win"
+  },
+  "build": {
+    "appId": "com.wanandroid.desktop",
+    "productName": "WanAndroid Desktop",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.ico",
+      "sign": null,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "installerHeaderIcon": "build/icon.ico"
+    }
   },
   "dependencies": {
     "axios": "^1.13.6",
@@ -18,9 +61,13 @@
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
     "autoprefixer": "^10.4.18",
+    "cross-env": "^10.1.0",
     "electron": "^28.0.0",
     "electron-builder": "^24.9.1",
+    "jimp": "^1.6.0",
+    "png-to-ico": "^3.0.1",
     "postcss": "^8.4.38",
+    "sharp": "^0.34.5",
     "tailwindcss": "^3.4.0",
     "typescript": "~5.4.5",
     "vite": "^5.2.8",

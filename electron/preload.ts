@@ -24,3 +24,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   platform: process.platform,
   version: process.env.npm_package_version || '1.0.0'
 })
+
+// 暴露 Cookie 操作 API（用于 Electron 环境持久化）
+contextBridge.exposeInMainWorld('cookieAPI', {
+  getCookie: () => ipcRenderer.invoke('get-cookie'),
+  setCookie: (cookie: string) => ipcRenderer.send('set-cookie', cookie),
+  clearCookie: () => ipcRenderer.send('clear-cookie')
+})
+
+// 暴露 HTTP 请求 API（使用 Electron net API 自动处理 Cookie）
+contextBridge.exposeInMainWorld('electronHttp', {
+  request: (options: { method: string; url: string; headers?: Record<string, string>; data?: string }) =>
+    ipcRenderer.invoke('http-request', options)
+})

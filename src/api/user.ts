@@ -26,8 +26,8 @@ export function logout() {
 
 // 保存用户信息到本地（用于自动登录）
 export function saveUserToLocal(username: string, password: string) {
-  setCookie('loginUserName', username, 7)
-  setCookie('loginUserPassword', password, 7)
+  setCookie('loginUserName', username)
+  setCookie('loginUserPassword', password)
 }
 
 // 从本地获取用户信息
